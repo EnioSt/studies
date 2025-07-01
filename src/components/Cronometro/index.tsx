@@ -114,6 +114,7 @@ const Cronometro = ({ selecionado, finalizarTarefa }: Props) => {
                 <Button onClick={resetar} disabled={tempo === 0}>↩</Button>
             </div>
         </div>
+        
     )
 }
 
