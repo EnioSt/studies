@@ -12,19 +12,22 @@ interface Props {
 
 const Cronometro = ({ selecionado, finalizarTarefa }: Props) => {
     const [tempo, setTempo] = useState<number>();
+    const [tempoInicial, setTempoInicial] = useState<number>();
     const [ativo, setAtivo] = useState(false);
     const intervaloRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (selecionado?.tempo) {
-            setTempo(tempoParaSegundos(selecionado.tempo));
+            const segundos = tempoParaSegundos(selecionado.tempo);
+            setTempo(segundos);
+            setTempoInicial(segundos);
             setAtivo(false);
             if (intervaloRef.current) {
                 clearInterval(intervaloRef.current);
-                intervaloRef.current = null
+                intervaloRef.current = null;
             }
         }
-    }, [selecionado])
+    }, [selecionado]);
 
     /*function regressiva(contador: number = 0) {
         setTimeout(() => {
@@ -36,7 +39,7 @@ const Cronometro = ({ selecionado, finalizarTarefa }: Props) => {
         }, 1000)
     }*/
 
-    const iniciar = () => {
+    /*const iniciar = () => {
         if (!intervaloRef.current && tempo && tempo > 0) {
             setAtivo(true);
             intervaloRef.current = setInterval(() => {
@@ -53,6 +56,29 @@ const Cronometro = ({ selecionado, finalizarTarefa }: Props) => {
                 });
             }, 1000);
         }
+    };*/
+
+    const iniciar = () => {
+        if (!tempo || intervaloRef.current) return;
+
+        setAtivo(true);
+        const tempoInicial = Date.now();
+        const tempoAlvo = tempoInicial + tempo * 1000;
+
+        intervaloRef.current = setInterval(() => {
+            const agora = Date.now();
+            const segundosRestantes = Math.round((tempoAlvo - agora) / 1000);
+
+            if (segundosRestantes >= 0) {
+                setTempo(segundosRestantes);
+            } else {
+                clearInterval(intervaloRef.current!);
+                intervaloRef.current = null;
+                setTempo(0);
+                setAtivo(false);
+                finalizarTarefa();
+            }
+        }, 250); // checa 4 vezes por segundo pra manter responsivo
     };
 
     const pausar = () => {
@@ -63,18 +89,32 @@ const Cronometro = ({ selecionado, finalizarTarefa }: Props) => {
         }
     };
 
+    const resetar = () => {
+        if (tempo === 0 || !tempoInicial) return;
+        if (intervaloRef.current) {
+            clearInterval(intervaloRef.current);
+            intervaloRef.current = null;
+        }
+        setTempo(tempoInicial); // volta para o tempo original
+        setAtivo(false);
+    };
+
     return (
         <div className={style.cronometro}>
             <p className={style.titulo}>Escolha um card e inicie o cronometro</p>
             <div className={style.relogioWrapper}>
                 <Relogio tempo={tempo} />
             </div>
-            {!ativo ? (
-                <Button onClick={iniciar}>Começar</Button>
-            ) : (
-                <Button onClick={pausar}>Pausar</Button>
-            )}
+            <div className={style.botoes}>
+                {!ativo ? (
+                    <Button onClick={iniciar}>▶</Button>
+                ) : (
+                    <Button onClick={pausar}>⏸</Button>
+                )}
+                <Button onClick={resetar} disabled={tempo === 0}>↩</Button>
+            </div>
         </div>
+        
     )
 }
 
